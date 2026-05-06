@@ -1,0 +1,53 @@
+DOCUMENTATION TECHNIQUE : SGH-K (SYSTEME DE GESTION OPKTALMOLOGIQUE)
+Lieu : Kolwezi, Lualaba
+Version : 1.0 (MVP)
+Développeur : 
+========================================================================
+
+1. INFORMATIONS DE CONNEXION (TEST)
+-----------------------------------
+- Espace Médecin : 
+    * Identifiant : medecin
+    * Mot de passe : 1234
+- Espace Réceptionniste : 
+    * Identifiant : reception
+    * Mot de passe : 1234
+
+2. CONFIGURATION BASE DE DONNÉES
+-----------------------------------
+- Serveur : localhost (MySQL)
+- Base de données : hospital_kolwezi_db
+- Utilisateur : root
+- Mot de passe : (vide)
+
+3. ARCHITECTURE DES DOSSIERS ET ROLE DES FICHIERS
+-------------------------------------------------
+
+/auth/ (Authentification)
+  - login.php          : Interface de connexion sécurisée. Vérifie les rôles.
+  - logout.php         : Fermeture de session et redirection.
+
+/config/ (Configuration)
+  - db.php             : Connexion PDO à la base de données hospital_kolwezi_db.
+
+/includes/ (Composants)
+  - sidebar.php        : Menu latéral dynamique s'adaptant selon le rôle.
+
+/medecin/ (Espace Médical - Rôle 1)
+  - dashboard.php      : Tableau de bord avec statistiques des diagnostics.
+  - patients.php       : Liste des malades en attente (disparaissent après diagnostic).
+  - consulter.php      : Formulaire de saisie (plaintes, diagnostic, traitement).
+  - consultations.php  : Registre historique de tous les actes médicaux effectués.
+
+/reception/ (Espace Accueil - Rôle 2)
+  - ajouter_malade.php : Enregistrement initial des informations du patient.
+  - liste_malades.php  : Répertoire complet de tous les patients enregistrés.
+  - employeurs.php     : Gestion des partenaires (GCM, SNCC, DGDA, etc.).
+
+4. TECHNOLOGIES UTILISÉES
+-------------------------
+- Langage : PHP 8.x
+- Base de données : MySQL 5.7
+- Design : Tailwind CSS
+- Typographie : Plus Jakarta Sans
+========================================================================
