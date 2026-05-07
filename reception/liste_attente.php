@@ -2,11 +2,12 @@
 
 /**
  * Liste d'attente des patients - SGH Kolwezi
- * Chemin : projet_celestine/reception/liste_attente.php
+ * Affiche uniquement les patients n'ayant pas encore de consultation enregistrée
  */
 session_start();
 require_once __DIR__ . '/../config/db.php';
 
+// Protection : Accès réservé à la réception (Rôle 2)
 if (!isset($_SESSION['id_role']) || (int)$_SESSION['id_role'] !== 2) {
     header('Location: ../auth/login.php');
     exit();
@@ -14,9 +15,7 @@ if (!isset($_SESSION['id_role']) || (int)$_SESSION['id_role'] !== 2) {
 
 try {
     /**
-     * Requête de diagnostic : 
-     * On retire le WHERE sur le statut pour éviter l'erreur 1054.
-     * On récupère les malades liés aux consultations.
+     * Requête : Sélectionner les malades qui ne sont PAS ENCORE dans la table consultations
      */
     $query = "SELECT 
                 m.num_fiche, 
@@ -24,10 +23,10 @@ try {
                 m.postnom_mal, 
                 m.sexe_mal,
                 e.nom_empl
-              FROM consultations c
-              JOIN malades m ON c.num_fiche = m.num_fiche
+              FROM malades m
               LEFT JOIN employeurs e ON m.code_empl = e.code_empl
-              LIMIT 10";
+              WHERE m.num_fiche NOT IN (SELECT num_fiche FROM consultations)
+              ORDER BY m.num_fiche ASC";
 
     $stmt = $pdo->query($query);
     $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -44,7 +43,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File d'Attente</title>
+    <title>File d'Attente | Réception</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -65,37 +64,54 @@ try {
 
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
             <div>
-                <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight italic">File d'Attente</h1>
-
+                <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">File d'Attente</h1>
+                <p class="text-slate-500 text-sm font-medium">Patients enregistrés en attente de consultation médicale.</p>
             </div>
-            <div class="bg-blue-100 text-blue-700 px-5 py-2 rounded-2xl font-bold text-xs border border-blue-200">
-                Mode Diagnostic : <?= count($patients) ?> Patient(s) affiché(s)
+            <div class="bg-emerald-100 text-emerald-700 px-5 py-2 rounded-2xl font-bold text-xs border border-emerald-200">
+                <?= count($patients) ?> Patient(s) en attente
             </div>
         </header>
 
         <div class="grid grid-cols-1 gap-4">
             <?php if (empty($patients)): ?>
-                <div class="bg-white border-2 border-dashed border-slate-200 rounded-[32px] p-20 text-center text-slate-400">
-                    Aucune donnée trouvée dans la table consultations.
+                <div class="bg-white border-2 border-dashed border-slate-200 rounded-[32px] p-20 text-center">
+                    <div class="flex flex-col items-center">
+                        <svg class="w-16 h-16 text-slate-200 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                        </svg>
+                        <p class="text-slate-400 font-medium">Tous les patients ont été consultés ou la file est vide.</p>
+                    </div>
                 </div>
             <?php else: ?>
                 <?php foreach ($patients as $index => $p): ?>
-                    <div class="bg-white p-6 rounded-[28px] border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center group hover:border-emerald-400 transition-all">
+                    <div class="bg-white p-6 rounded-[28px] border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center group hover:border-blue-400 transition-all">
                         <div class="flex items-center gap-6">
-                            <div class="text-2xl font-black text-slate-200"><?= $index + 1 ?></div>
+                            <div class="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-xl font-black text-slate-300 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
+                                <?= $index + 1 ?>
+                            </div>
                             <div>
                                 <h3 class="font-bold text-slate-900 uppercase">
                                     <?= htmlspecialchars($p['nom_mal'] . ' ' . $p['postnom_mal']) ?>
                                 </h3>
-                                <p class="text-xs text-slate-400 font-medium">
-                                    Fiche : #<?= str_pad($p['num_fiche'], 4, '0', STR_PAD_LEFT) ?> |
-                                    <?= htmlspecialchars($p['nom_empl'] ?? 'Individuel') ?>
-                                </p>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-bold uppercase">
+                                        Fiche #<?= str_pad($p['num_fiche'], 4, '0', STR_PAD_LEFT) ?>
+                                    </span>
+                                    <span class="text-slate-300 text-xs">•</span>
+                                    <p class="text-xs text-slate-400 font-medium italic">
+                                        Prise en charge : <?= htmlspecialchars($p['nom_empl'] ?? 'Individuel') ?>
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                        <a href="fiche_patient.php?id=<?= $p['num_fiche'] ?>" class="bg-slate-900 text-white px-8 py-3.5 rounded-2xl font-bold text-xs hover:bg-emerald-600 transition-all shadow-lg shadow-slate-100">
-                            Gérer la fiche
-                        </a>
+
+                        <div class="flex items-center gap-3 mt-4 md:mt-0">
+                            <span class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full mr-4">En attente</span>
+                            <a href="fiche_patient.php?id=<?= $p['num_fiche'] ?>"
+                                class="bg-slate-900 text-white px-8 py-3.5 rounded-2xl font-bold text-xs hover:bg-blue-600 transition-all shadow-lg shadow-slate-100">
+                                Détails du dossier
+                            </a>
+                        </div>
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>

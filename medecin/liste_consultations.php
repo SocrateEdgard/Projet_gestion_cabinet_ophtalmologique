@@ -2,6 +2,7 @@
 
 /**
  * Page de visualisation de l'historique complet - hospital_kolwezi_db
+ * Chemin : projet_celestine/medecin/liste_consultations.php
  */
 session_start();
 require_once __DIR__ . '/../config/db.php';
@@ -13,8 +14,8 @@ if (!isset($_SESSION['id_role']) || (int)$_SESSION['id_role'] !== 1) {
 }
 
 try {
-    // 2. Requête SQL adaptée à ta structure réelle (hospital_kolwezi_db)
-    // Jointure avec 'employeurs' pour récupérer le nom de l'entreprise (GCM, etc.)
+    // 2. Requête SQL adaptée à la structure réelle
+    // Sélection de Diagnostic avec un D majuscule comme dans votre base de données
     $query = "SELECT c.*, 
                      m.nom_mal, m.postnom_mal, m.sexe_mal, 
                      m.date_naiss, m.adresse_mal, m.num_matr_ag,
@@ -25,7 +26,7 @@ try {
               ORDER BY c.date_diag DESC";
 
     $stmt = $pdo->query($query);
-    $consultations = $stmt->fetchAll();
+    $consultations = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     die("Erreur de récupération : " . $e->getMessage());
 }
@@ -48,7 +49,6 @@ try {
 
 <body class="bg-[#F8FAFC] min-h-screen flex flex-row">
 
-    <!-- Sidebar Dynamique -->
     <?php
     $sidebarPath = __DIR__ . '/../includes/sidebar.php';
     if (file_exists($sidebarPath)) include $sidebarPath;
@@ -60,7 +60,7 @@ try {
             <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
                 <div>
                     <h1 class="text-3xl font-bold text-slate-900">Historique des Consultations</h1>
-                    <p class="text-slate-500 text-sm">Gestion des archives de l'hôpital de Kolwezi</p>
+                    <p class="text-slate-500 text-sm">Gestion des archives hospitalières de Kolwezi</p>
                 </div>
             </header>
 
@@ -70,10 +70,10 @@ try {
                         <thead class="bg-slate-50/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-100">
                             <tr>
                                 <th class="px-6 py-5">Date & Patient</th>
-                                <th class="px-6 py-5">Identité & Contact</th>
+                                <th class="px-6 py-5">Identité & Entreprise</th>
                                 <th class="px-6 py-5">Diagnostic</th>
-                                <th class="px-6 py-5">Traitement Prescrit</th>
-                                <th class="px-6 py-5 text-right">Frais</th>
+                                <th class="px-6 py-5">Traitement</th>
+                                <th class="px-6 py-5 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -86,7 +86,6 @@ try {
                             <?php else: ?>
                                 <?php foreach ($consultations as $c): ?>
                                     <tr class="hover:bg-slate-50/30 transition-all">
-                                        <!-- DATE ET NOM -->
                                         <td class="px-6 py-6">
                                             <div class="text-[10px] font-bold text-blue-500 mb-1 uppercase tracking-tighter">
                                                 <?= date('d/m/Y à H:i', strtotime($c['date_diag'])) ?>
@@ -97,40 +96,35 @@ try {
                                             <div class="text-[10px] text-slate-400 mt-1">Fiche : <span class="text-slate-600 font-bold">#<?= $c['num_fiche'] ?></span></div>
                                         </td>
 
-                                        <!-- INFOS PATIENT (Basé sur tes colonnes SQL) -->
                                         <td class="px-6 py-6">
                                             <div class="text-xs text-slate-600 font-bold mb-1">
-                                                Sexe : <?= $c['sexe_mal'] ?> | Naiss. : <?= $c['date_naiss'] ?? 'Non spécifiée' ?>
-                                            </div>
-                                            <div class="text-[11px] text-slate-500 mb-1">
-                                                📍 <?= htmlspecialchars($c['adresse_mal'] ?? 'Kolwezi') ?>
+                                                Sexe : <?= $c['sexe_mal'] ?> | <?= htmlspecialchars($c['num_matr_ag'] ?: 'Pas de matricule') ?>
                                             </div>
                                             <div class="inline-block bg-slate-100 text-slate-600 text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-widest">
                                                 🏢 <?= htmlspecialchars($c['nom_empl'] ?? 'Privé') ?>
-                                                (<?= htmlspecialchars($c['code_empl'] ?? 'N/A') ?>)
                                             </div>
                                         </td>
 
-                                        <!-- CLINIQUE -->
                                         <td class="px-6 py-6">
-                                            <div class="text-[11px] text-slate-400 italic mb-1 line-clamp-1" title="<?= htmlspecialchars($c['plainte']) ?>">
-                                                "<?= htmlspecialchars($c['plainte']) ?>"
-                                            </div>
                                             <span class="bg-orange-50 text-orange-700 px-3 py-1 rounded-lg font-bold text-[10px] uppercase border border-orange-100">
-                                                <?= htmlspecialchars($c['diagnostic']) ?>
+                                                <?= htmlspecialchars($c['Diagnostic'] ?? 'Non spécifié') ?>
                                             </span>
                                         </td>
 
-                                        <!-- TRAITEMENT -->
                                         <td class="px-6 py-6">
-                                            <div class="text-xs text-slate-700 leading-relaxed max-w-xs">
-                                                <?= nl2br(htmlspecialchars($c['traitement'])) ?>
+                                            <div class="text-xs text-slate-700 line-clamp-2 max-w-xs">
+                                                <?= htmlspecialchars($c['traitement']) ?>
                                             </div>
                                         </td>
 
-                                        <!-- MONTANT -->
-                                        <td class="px-6 py-6 text-right font-black text-slate-900 text-sm">
-                                            <?= number_format($c['montant'], 0, ',', ' ') ?> <span class="text-[9px] font-bold text-slate-400 ml-0.5">FC</span>
+                                        <td class="px-6 py-6 text-right">
+                                            <a href="details_consultation.php?id=<?= $c['id_cons'] ?>"
+                                                class="inline-flex items-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition-all">
+                                                Voir détails
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                                </svg>
+                                            </a>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
